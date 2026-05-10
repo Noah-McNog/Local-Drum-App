@@ -1,0 +1,2569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Drum Pad">
+<meta name="theme-color" content="#0d0d10">
+<title>Drum Pad Practice</title>
+<style>
+:root {
+  /* Surfaces — softer, warmer dark. The previous greys were slightly cold. */
+  --bg: #0b0b0e;
+  --bg-elevated: #16161b;
+  --bg-card: #1a1a20;
+  --bg-card-hover: #20202a;
+  --bg-subtle: #131318;
+
+  /* Borders — thinner, less contrast at rest, more on hover */
+  --border: #25252e;
+  --border-strong: #353541;
+  --border-focus: rgba(255, 159, 67, 0.5);
+
+  /* Text — three-tier hierarchy, all WCAG AA on bg */
+  --text: #f5f5f7;
+  --text-dim: #a8a8b3;
+  --text-faint: #6c6c78;
+
+  /* Brand — warmer amber, less saturated for less eye strain */
+  --accent: #ffa94d;
+  --accent-hover: #ffba6e;
+  --accent-soft: rgba(255, 169, 77, 0.12);
+  --accent-text: #1a0e00;
+
+  /* Hand colors — cooler blue, warmer amber. Maximally distinct. */
+  --left: #6cc4f0;
+  --left-soft: rgba(108, 196, 240, 0.14);
+  --left-strong: rgba(108, 196, 240, 0.4);
+  --right: #ffa94d;
+  --right-soft: rgba(255, 169, 77, 0.14);
+  --right-strong: rgba(255, 169, 77, 0.4);
+
+  /* Status */
+  --success: #5dd97a;
+  --success-soft: rgba(93, 217, 122, 0.1);
+  --danger: #ff5547;
+  --warning: #ffd60a;
+
+  /* Geometry */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --t-fast: 0.12s;
+  --t-base: 0.2s;
+  --t-slow: 0.35s;
+
+  /* Shadows — sparingly used, mainly for elevated overlays */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+*:focus { outline: none; }
+*:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+  overscroll-behavior: none;
+  -webkit-user-select: none; user-select: none;
+  height: 100%;
+  font-feature-settings: "ss01", "cv11", "tnum";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+body {
+  display: flex; flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  min-height: 100vh; min-height: 100dvh;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.screen {
+  display: none; flex: 1; flex-direction: column;
+  padding: 12px 16px 96px; overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  animation: screenIn 0.3s var(--ease-out);
+}
+.screen.active { display: flex; }
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+h1 {
+  font-size: 28px; font-weight: 700; margin: 8px 0 16px;
+  letter-spacing: -0.025em;
+}
+h2 {
+  font-size: 16px; font-weight: 600; margin: 20px 0 8px;
+  color: var(--text); letter-spacing: -0.01em;
+}
+h3 {
+  font-size: 11px; font-weight: 600; margin: 14px 0 8px;
+  color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+
+button {
+  background: var(--bg-card); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 11px 16px; font-size: 15px; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+  transition: background var(--t-fast) var(--ease-smooth),
+              transform var(--t-fast) var(--ease-smooth),
+              border-color var(--t-fast) var(--ease-smooth),
+              opacity var(--t-fast) var(--ease-smooth);
+  -webkit-touch-callout: none;
+}
+button:hover { background: var(--bg-card-hover); border-color: var(--border-strong); }
+button:active { transform: scale(0.96); }
+button.primary {
+  background: var(--accent); border-color: var(--accent); color: var(--accent-text);
+  font-weight: 600;
+}
+button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+button.danger {
+  background: var(--danger); border-color: var(--danger); color: #fff;
+}
+button.ghost {
+  background: transparent; border-color: transparent; color: var(--text-dim);
+}
+button.ghost:hover { background: var(--bg-card); color: var(--text); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button:disabled:active { transform: none; }
+
+.row { display: flex; gap: 8px; align-items: center; }
+.col { display: flex; flex-direction: column; gap: 8px; }
+.card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 10px;
+  transition: border-color var(--t-base) var(--ease-smooth);
+}
+.muted { color: var(--text-dim); font-size: 13px; line-height: 1.5; }
+.faint { color: var(--text-faint); font-size: 12px; }
+
+.tag {
+  display: inline-block; font-size: 10px; padding: 3px 8px;
+  border-radius: 6px; font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.tag.beg { background: var(--success-soft); color: var(--success); }
+.tag.int { background: rgba(255, 169, 77, 0.12); color: var(--accent); }
+.tag.adv { background: rgba(255, 85, 71, 0.12); color: #ff7a6e; }
+
+/* ============================================================
+   PRACTICE DISPLAY
+   ============================================================ */
+.practice-display {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: stretch; justify-content: center;
+  padding: 12px 0;
+}
+.pattern-name {
+  font-size: 22px; font-weight: 700; color: var(--text);
+  margin-bottom: 2px; letter-spacing: -0.02em;
+  min-height: 28px;
+  text-align: center;
+}
+.tempo-display {
+  font-size: 13px; color: var(--text-dim); margin-bottom: 18px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* Beat track: groups of cells per beat, with breathing room between beats.
+   On overflow, scrolls horizontally, snapping to beat boundaries. */
+.beat-track-wrap {
+  position: relative;
+  margin: 0 -16px 16px;
+  padding: 8px 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+.beat-track-wrap::-webkit-scrollbar { display: none; }
+.beat-track-wrap::before,
+.beat-track-wrap::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 24px;
+  pointer-events: none; z-index: 2;
+}
+.beat-track-wrap::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--bg) 0%, transparent 100%);
+}
+.beat-track-wrap::after {
+  right: 0;
+  background: linear-gradient(-90deg, var(--bg) 0%, transparent 100%);
+}
+
+.beat-track {
+  display: inline-flex; gap: 14px; padding: 4px 8px;
+  min-width: 100%; justify-content: center;
+}
+.beat-track.scrolling { justify-content: flex-start; }
+
+.beat-group {
+  display: flex; gap: 4px;
+  position: relative;
+}
+
+.beat-cell {
+  width: 36px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 600;
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-faint);
+  position: relative;
+  transition: transform var(--t-fast) var(--ease-spring),
+              background var(--t-fast) var(--ease-smooth),
+              color var(--t-fast) var(--ease-smooth),
+              box-shadow var(--t-fast) var(--ease-smooth);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.beat-cell.left {
+  color: var(--left);
+  background: var(--left-soft);
+  border-color: rgba(108, 196, 240, 0.22);
+}
+.beat-cell.right {
+  color: var(--right);
+  background: var(--right-soft);
+  border-color: rgba(255, 169, 77, 0.22);
+}
+.beat-cell.accent {
+  font-size: 19px; font-weight: 700;
+  border-width: 1.5px;
+}
+.beat-cell.accent.left { border-color: var(--left); }
+.beat-cell.accent.right { border-color: var(--right); }
+.beat-cell.accent::before {
+  content: "";
+  position: absolute; top: 5px; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  opacity: 0.85;
+}
+.beat-cell.flam::after {
+  content: "";
+  position: absolute; bottom: 5px; left: 50%;
+  transform: translateX(-50%);
+  width: 4px; height: 4px; border-radius: 50%;
+  background: currentColor; opacity: 0.7;
+}
+.beat-cell.drag-mark::after {
+  content: "";
+  position: absolute; bottom: 5px; left: 50%;
+  transform: translateX(-50%);
+  width: 12px; height: 3px; border-radius: 2px;
+  background: currentColor; opacity: 0.6;
+}
+.beat-cell.active {
+  transform: scale(1.16) translateY(-2px);
+  z-index: 1;
+}
+.beat-cell.active.left {
+  background: var(--left); color: #001520;
+  box-shadow: 0 0 0 3px var(--left-strong),
+              0 6px 16px rgba(108, 196, 240, 0.3);
+}
+.beat-cell.active.right {
+  background: var(--right); color: #1a0f00;
+  box-shadow: 0 0 0 3px var(--right-strong),
+              0 6px 16px rgba(255, 169, 77, 0.3);
+}
+.beat-cell.active::before { opacity: 1; }
+
+/* Beat-number label under each group */
+.beat-group::before {
+  content: attr(data-beat);
+  position: absolute;
+  bottom: -18px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; font-weight: 600;
+  color: var(--text-faint);
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+}
+.beat-track-wrap.with-numbers { padding-bottom: 28px; }
+
+/* ============================================================
+   CONTROLS & FORM
+   ============================================================ */
+.controls {
+  display: flex; gap: 10px; padding: 14px 0 4px;
+  position: sticky; bottom: 0;
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+}
+.controls button { flex: 1; padding: 14px; font-size: 16px; }
+
+.tempo-controls {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 0;
+}
+.tempo-controls button {
+  padding: 10px 14px; min-width: 52px; font-weight: 600; font-size: 15px;
+}
+.bpm-display {
+  font-size: 40px; font-weight: 700;
+  flex: 1; text-align: center;
+  letter-spacing: -0.03em; font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.bpm-display .bpm-unit {
+  font-size: 12px; color: var(--text-dim); font-weight: 500;
+  margin-left: 4px; letter-spacing: 0.05em;
+  text-transform: uppercase;
+  display: inline-block; vertical-align: 0.4em;
+}
+
+input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  height: 4px; background: var(--border); border-radius: 2px; outline: none;
+  margin: 10px 0; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 22px; height: 22px;
+  background: var(--accent); border-radius: 50%;
+  cursor: pointer; border: 3px solid var(--bg);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-sm);
+  transition: transform var(--t-fast) var(--ease-spring);
+}
+input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
+input[type=range]::-moz-range-thumb {
+  width: 22px; height: 22px; background: var(--accent);
+  border-radius: 50%; cursor: pointer; border: 3px solid var(--bg);
+}
+
+select {
+  background: var(--bg-card); color: var(--text);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 36px 10px 12px; font-size: 15px; font-family: inherit; width: 100%;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3e%3cpath fill='%23a8a8b3' d='M5 6L0 0h10z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat; background-position: right 12px center;
+  cursor: pointer;
+  transition: border-color var(--t-fast), background-color var(--t-fast);
+}
+select:hover { border-color: var(--border-strong); }
+
+input[type=checkbox] {
+  width: 22px; height: 22px;
+  accent-color: var(--accent);
+}
+
+input[type=text] {
+  background: var(--bg-card); color: var(--text);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 11px 12px; font-size: 15px; font-family: inherit; width: 100%;
+  transition: border-color var(--t-fast);
+}
+input[type=text]:focus { border-color: var(--accent); }
+
+/* Beat track legend */
+.legend {
+  display: flex; gap: 14px; font-size: 11px;
+  color: var(--text-faint); padding: 4px 0 8px;
+  flex-wrap: wrap; justify-content: center;
+  letter-spacing: 0.02em;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* ============================================================
+   90-DAY ROUTINE
+   ============================================================ */
+.routine-progress {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 8px; margin-bottom: 14px;
+}
+.stat-card {
+  background: var(--bg-card); padding: 14px 12px; border-radius: var(--radius);
+  text-align: center; border: 1px solid var(--border);
+  transition: border-color var(--t-base);
+}
+.stat-num {
+  font-size: 26px; font-weight: 700; color: var(--accent);
+  letter-spacing: -0.025em; font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.stat-label {
+  font-size: 10px; color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  margin-top: 4px; font-weight: 600;
+}
+
+.day-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 6px; cursor: pointer;
+  transition: background var(--t-base) var(--ease-smooth),
+              border-color var(--t-base) var(--ease-smooth),
+              transform var(--t-fast) var(--ease-smooth);
+}
+.day-item:hover { background: var(--bg-card-hover); border-color: var(--border-strong); }
+.day-item:active { transform: scale(0.99); }
+.day-item.completed {
+  background: var(--success-soft);
+  border-color: rgba(93, 217, 122, 0.22);
+}
+.day-item.today {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.day-num { font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
+.day-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+.day-check {
+  color: var(--success); font-size: 16px; font-weight: 700;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--success-soft);
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ============================================================
+   SESSION
+   ============================================================ */
+.session-block {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px;
+  transition: all var(--t-base) var(--ease-smooth);
+}
+.session-block.current {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.session-block.done {
+  opacity: 0.4;
+  background: transparent;
+}
+.block-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 4px; gap: 12px;
+}
+.block-name { font-weight: 600; font-size: 14px; letter-spacing: -0.005em; }
+.block-time {
+  font-size: 12px; color: var(--accent); font-weight: 600;
+  font-variant-numeric: tabular-nums; flex-shrink: 0;
+}
+.block-meta { font-size: 12px; color: var(--text-dim); }
+
+.timer-display {
+  font-size: 64px; font-weight: 700; text-align: center;
+  font-variant-numeric: tabular-nums; padding: 8px;
+  letter-spacing: -0.05em;
+  color: var(--text);
+  line-height: 1;
+}
+.session-progress {
+  height: 3px; background: var(--border); border-radius: 2px; overflow: hidden;
+  margin: 16px 0 18px;
+}
+.session-progress-fill {
+  height: 100%; background: var(--accent);
+  transition: width var(--t-slow) var(--ease-smooth);
+}
+
+/* ============================================================
+   TAB BAR
+   ============================================================ */
+.tab-bar {
+  display: flex; gap: 0; padding: 6px 8px calc(env(safe-area-inset-bottom) + 6px);
+  background: rgba(11, 11, 14, 0.78);
+  backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-top: 1px solid var(--border);
+  position: fixed; bottom: 0; left: 0; right: 0;
+  z-index: 50;
+}
+.tab-bar button {
+  flex: 1; background: transparent; border: none; border-radius: 10px;
+  padding: 8px 4px; font-size: 10px; font-weight: 500;
+  color: var(--text-faint);
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  letter-spacing: 0.02em;
+  transition: color var(--t-fast) var(--ease-smooth),
+              background var(--t-fast) var(--ease-smooth),
+              transform var(--t-fast) var(--ease-smooth);
+}
+.tab-bar button:active { transform: scale(0.92); }
+.tab-bar button .tab-icon {
+  width: 20px; height: 20px; line-height: 1;
+  transition: transform var(--t-base) var(--ease-spring);
+}
+.tab-bar button.active {
+  color: var(--accent);
+}
+.tab-bar button.active .tab-icon {
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.toast {
+  position: fixed; bottom: calc(env(safe-area-inset-bottom) + 78px);
+  left: 50%; transform: translateX(-50%) translateY(8px);
+  background: var(--bg-elevated); border: 1px solid var(--border-strong);
+  padding: 10px 18px; border-radius: var(--radius-xl); font-size: 14px;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--t-base) var(--ease-smooth),
+              transform var(--t-base) var(--ease-out);
+  z-index: 200; font-weight: 500;
+  box-shadow: var(--shadow-lg);
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ============================================================
+   CUSTOM ACCENT BUILDER
+   ============================================================ */
+.accent-builder-grid {
+  display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 0;
+}
+.accent-cell {
+  width: 38px; height: 50px; display: flex;
+  align-items: center; justify-content: center;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; font-weight: 600; font-size: 14px;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease-smooth),
+              border-color var(--t-fast) var(--ease-smooth),
+              transform var(--t-fast) var(--ease-spring);
+  position: relative;
+}
+.accent-cell:active { transform: scale(0.94); }
+.accent-cell.r { color: var(--right); }
+.accent-cell.l { color: var(--left); }
+.accent-cell.accented {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+.accent-cell.accented::before {
+  content: ""; position: absolute; top: 5px; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--accent);
+}
+.accent-cell.flam::after {
+  content: ""; position: absolute; bottom: 5px; left: 50%;
+  transform: translateX(-50%);
+  width: 4px; height: 4px; border-radius: 50%;
+  background: currentColor; opacity: 0.7;
+}
+.accent-cell.drag-mark::after {
+  content: ""; position: absolute; bottom: 5px; left: 50%;
+  transform: translateX(-50%);
+  width: 12px; height: 3px; border-radius: 2px;
+  background: currentColor; opacity: 0.6;
+}
+.accent-cell.selected {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* ============================================================
+   CHALLENGE MODE
+   ============================================================ */
+.challenge-display {
+  text-align: center; padding: 28px 16px 20px;
+}
+.challenge-bpm {
+  font-size: 72px; font-weight: 700; color: var(--accent);
+  letter-spacing: -0.05em; font-variant-numeric: tabular-nums;
+  line-height: 0.95;
+}
+.challenge-bpm .bpm-unit {
+  font-size: 14px; color: var(--text-dim); font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  margin-left: 6px;
+}
+.challenge-progress-text {
+  font-size: 14px; color: var(--text-dim);
+  margin: 10px 0 14px; min-height: 20px;
+}
+.challenge-bar {
+  height: 6px; background: var(--border); border-radius: 3px;
+  overflow: hidden; margin: 14px 0;
+}
+.challenge-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--left), var(--accent));
+  transition: width var(--t-slow) var(--ease-smooth);
+  box-shadow: 0 0 12px rgba(255, 169, 77, 0.3);
+}
+
+/* ============================================================
+   MISC LAYOUT
+   ============================================================ */
+.day-list-wrap { margin-top: 8px; }
+.section-divider {
+  height: 1px; background: var(--border);
+  margin: 20px 0;
+}
+.empty-state {
+  text-align: center; padding: 36px 20px;
+  color: var(--text-faint);
+  font-size: 14px;
+}
+
+.btn-icon {
+  width: 44px; height: 44px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+
+.label-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; gap: 12px;
+}
+.label-row + .label-row { border-top: 1px solid var(--border); }
+.label-row label {
+  flex: 1; font-size: 14px; color: var(--text);
+  cursor: default;
+}
+.label-row .control { flex-shrink: 0; }
+
+/* Visually-hidden, screen-reader only */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+</style>
+</head>
+<body>
+
+<!-- ============== PRACTICE SCREEN ============== -->
+<div id="screen-practice" class="screen active">
+  <h1>Practice</h1>
+
+  <div class="card">
+    <h3>Pattern</h3>
+    <select id="patternSelect" aria-label="Choose pattern"></select>
+    <div class="muted" id="patternDesc" style="margin-top:8px;"></div>
+  </div>
+
+  <div class="card">
+    <div class="tempo-controls">
+      <button onclick="adjustTempo(-5)" aria-label="Decrease tempo by 5">−5</button>
+      <div class="bpm-display">
+        <span id="bpmDisplay">90</span><span class="bpm-unit">BPM</span>
+      </div>
+      <button onclick="adjustTempo(5)" aria-label="Increase tempo by 5">+5</button>
+    </div>
+    <input type="range" id="tempoSlider" min="40" max="260" value="90" aria-label="Tempo">
+
+    <div class="label-row">
+      <label for="subdivSelect">Subdivision</label>
+      <select id="subdivSelect" class="control" style="width: auto;">
+        <option value="1">¼ note</option>
+        <option value="2">⅛ note</option>
+        <option value="4" selected>1/16 note</option>
+        <option value="3">⅛ triplet</option>
+        <option value="6">1/16 triplet</option>
+      </select>
+    </div>
+
+    <div class="label-row">
+      <label>Loops</label>
+      <select id="loopCount" class="control" style="width: auto;">
+        <option value="0">∞ infinite</option>
+        <option value="4">4×</option>
+        <option value="8" selected>8×</option>
+        <option value="16">16×</option>
+        <option value="32">32×</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="practice-display">
+    <div class="pattern-name" id="patternName">—</div>
+    <div class="tempo-display" id="tempoDisplay"></div>
+    <div class="beat-track-wrap" id="beatTrackWrap">
+      <div class="beat-track" id="beatTrack" role="list" aria-label="Sticking pattern"></div>
+    </div>
+    <div class="legend">
+      <span class="legend-item"><span class="legend-dot" style="background:var(--left)"></span>Left</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--right)"></span>Right</span>
+      <span class="legend-item"><span style="display:inline-block;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--text-dim)"></span>accent</span>
+      <span class="legend-item"><span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--text-dim)"></span>flam</span>
+      <span class="legend-item"><span style="display:inline-block;width:12px;height:3px;border-radius:2px;background:var(--text-dim)"></span>drag</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="primary" id="playBtn" onclick="togglePlay()">▶ Play</button>
+    <button onclick="tapTempo()">Tap</button>
+  </div>
+</div>
+
+<!-- ============== 90-DAY ROUTINE ============== -->
+<div id="screen-routine" class="screen">
+  <h1>90-Day plan</h1>
+  <div class="routine-progress">
+    <div class="stat-card"><div class="stat-num" id="stat-day">1</div><div class="stat-label">Today</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-streak">0</div><div class="stat-label">Streak</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-done">0</div><div class="stat-label">Done</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-pct">0%</div><div class="stat-label">Progress</div></div>
+  </div>
+  <button class="primary" onclick="startTodaySession()" style="width:100%; padding:16px; font-size:16px; margin-bottom:8px;">Start today's session</button>
+  <button class="ghost" onclick="resetRoutine()" style="width:100%; padding:8px; font-size:13px;">Reset progress</button>
+  <h2>Schedule</h2>
+  <div id="dayList" class="day-list-wrap"></div>
+</div>
+
+<!-- ============== SESSION ============== -->
+<div id="screen-session" class="screen">
+  <h1 id="sessionTitle">Day 1</h1>
+  <div class="muted" style="text-align:center; margin-bottom:8px;" id="sessionFocus"></div>
+  <div class="timer-display" id="sessionTimer">30:00</div>
+  <div class="session-progress"><div class="session-progress-fill" id="sessionProgressFill"></div></div>
+  <div id="sessionBlocks"></div>
+  <div class="controls">
+    <button id="sessionPlayBtn" class="primary" onclick="toggleSession()">Start</button>
+    <button onclick="skipBlock()">Skip</button>
+    <button onclick="exitSession()" class="ghost">Exit</button>
+  </div>
+</div>
+
+<!-- ============== RUDIMENTS LIBRARY ============== -->
+<div id="screen-rudiments" class="screen">
+  <h1>Rudiments</h1>
+  <div class="muted" style="margin-bottom:12px;">Tap any pattern to load it.</div>
+  <input type="text" id="rudSearch" placeholder="Search patterns..." style="width:100%; padding:11px 12px; background:var(--bg-card); color:var(--text); border:1px solid var(--border); border-radius:10px; font-size:15px; font-family:inherit; margin-bottom:8px;">
+  <div id="rudimentList"></div>
+</div>
+
+<!-- ============== CHALLENGE MODE ============== -->
+<div id="screen-challenge" class="screen">
+  <h1>Challenge</h1>
+  <div class="muted" style="margin-bottom:12px;">Pick a pattern. The BPM ramps up across reps. See how high you can go.</div>
+
+  <div class="card">
+    <h3>Pattern</h3>
+    <select id="chPattern"></select>
+  </div>
+
+  <div class="card">
+    <div class="label-row">
+      <label>Start BPM</label>
+      <div class="control row">
+        <button onclick="chAdj('start',-5)" style="min-width:36px; padding:6px 10px;">−</button>
+        <span id="chStartBpm" style="font-weight:600; font-variant-numeric:tabular-nums; min-width:40px; text-align:center;">100</span>
+        <button onclick="chAdj('start',5)" style="min-width:36px; padding:6px 10px;">+</button>
+      </div>
+    </div>
+    <div class="label-row">
+      <label>Target BPM</label>
+      <div class="control row">
+        <button onclick="chAdj('target',-5)" style="min-width:36px; padding:6px 10px;">−</button>
+        <span id="chTargetBpm" style="font-weight:600; font-variant-numeric:tabular-nums; min-width:40px; text-align:center;">160</span>
+        <button onclick="chAdj('target',5)" style="min-width:36px; padding:6px 10px;">+</button>
+      </div>
+    </div>
+    <div class="label-row">
+      <label>Step (BPM per stage)</label>
+      <select id="chStep" class="control" style="width:auto;">
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="5" selected>5</option>
+        <option value="10">10</option>
+      </select>
+    </div>
+    <div class="label-row">
+      <label>Reps per stage</label>
+      <select id="chReps" class="control" style="width:auto;">
+        <option value="2">2</option>
+        <option value="4" selected>4</option>
+        <option value="8">8</option>
+        <option value="16">16</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="challenge-display">
+    <div class="challenge-bpm"><span id="chBpmNow">—</span><span class="bpm-unit"> BPM</span></div>
+    <div class="challenge-progress-text" id="chStatus">Ready when you are.</div>
+    <div class="challenge-bar"><div class="challenge-bar-fill" id="chBarFill" style="width:0"></div></div>
+    <div class="muted" id="chBest" style="margin-top:8px;"></div>
+  </div>
+
+  <div class="controls">
+    <button class="primary" id="chPlayBtn" onclick="toggleChallenge()">▶ Start challenge</button>
+  </div>
+</div>
+
+<!-- ============== CUSTOM ACCENT BUILDER ============== -->
+<div id="screen-custom" class="screen">
+  <h1>Custom pattern</h1>
+  <div class="muted" style="margin-bottom:12px;">Build your own sticking + accent pattern. Tap a cell to toggle accent. Long-press (or use the toolbar) to change hand or add flam/drag.</div>
+
+  <div class="card">
+    <div class="label-row">
+      <label>Length</label>
+      <select id="customLength" class="control" style="width:auto;">
+        <option>4</option><option>6</option><option selected>8</option>
+        <option>12</option><option>16</option><option>20</option>
+        <option>24</option><option>32</option>
+      </select>
+    </div>
+    <div class="label-row">
+      <label>Subdivision</label>
+      <select id="customSubdiv" class="control" style="width:auto;">
+        <option value="1">¼</option>
+        <option value="2">⅛</option>
+        <option value="4" selected>1/16</option>
+        <option value="3">⅛ triplet</option>
+        <option value="6">1/16 triplet</option>
+      </select>
+    </div>
+    <div class="label-row">
+      <label>Sticking preset</label>
+      <select id="customStick" class="control" style="width:auto;">
+        <option value="alt">Alternating R L</option>
+        <option value="altL">Alternating L R</option>
+        <option value="dbl">Doubles RR LL</option>
+        <option value="para">Paradiddle</option>
+        <option value="rights">All right</option>
+        <option value="lefts">All left</option>
+        <option value="keep">Keep current</option>
+      </select>
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <button onclick="customApplyStick()" style="flex:1;">Apply sticking</button>
+      <button onclick="customClearAccents()" style="flex:1;">Clear accents</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Accent grid</h3>
+    <div id="customGrid" class="accent-builder-grid"></div>
+    <div class="row" style="margin-top:12px; gap:6px; flex-wrap:wrap;">
+      <button onclick="customAccentEvery(2)" style="flex:1; min-width:100px;">Accent every 2</button>
+      <button onclick="customAccentEvery(3)" style="flex:1; min-width:100px;">Every 3</button>
+      <button onclick="customAccentEvery(4)" style="flex:1; min-width:100px;">Every 4</button>
+      <button onclick="customAccentEvery(5)" style="flex:1; min-width:100px;">Every 5</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Per-note tools</h3>
+    <div class="muted" style="margin-bottom:8px;">Tap a cell, then choose:</div>
+    <div class="row" style="gap:6px; flex-wrap:wrap;">
+      <button onclick="customSetNote('h')" style="flex:1; min-width:80px;">Switch hand</button>
+      <button onclick="customSetNote('f')" style="flex:1; min-width:80px;">Toggle flam</button>
+      <button onclick="customSetNote('g')" style="flex:1; min-width:80px;">Toggle drag</button>
+    </div>
+    <div class="faint" id="customSelInfo" style="margin-top:8px;">No cell selected.</div>
+  </div>
+
+  <div class="row">
+    <button class="primary" onclick="customLoadToPractice()" style="flex:1;">Load to practice</button>
+    <button onclick="customSave()" style="flex:1;">Save preset</button>
+  </div>
+
+  <h2>Saved presets</h2>
+  <div id="customSavedList"></div>
+</div>
+
+<!-- ============== SETTINGS ============== -->
+<div id="screen-settings" class="screen">
+  <h1>Settings</h1>
+  <div class="card">
+    <h3>Sound</h3>
+    <div class="label-row">
+      <label>Click voice</label>
+      <select id="clickSoundSelect" class="control" style="width:auto;">
+        <option value="wood" selected>Wood (soft)</option>
+        <option value="rim">Rim tap</option>
+        <option value="block">Block</option>
+        <option value="tone">Pure tone</option>
+        <option value="click">Sharp click</option>
+      </select>
+    </div>
+    <div class="label-row">
+      <label>Stereo pan (L/R hand)</label>
+      <input type="checkbox" id="panToggle" class="control" checked>
+    </div>
+    <div class="label-row">
+      <label>Pitch differentiation</label>
+      <input type="checkbox" id="pitchDiffToggle" class="control" checked>
+    </div>
+    <div class="label-row">
+      <label>Accent volume boost</label>
+      <input type="checkbox" id="accentToggle" class="control" checked>
+    </div>
+    <div class="label-row">
+      <label>Volume</label>
+      <input type="range" id="volSlider" min="0" max="100" value="60" class="control" style="width:160px;">
+    </div>
+  </div>
+  <div class="card">
+    <h3>Playback</h3>
+    <div class="label-row">
+      <label>4-beat count-in</label>
+      <input type="checkbox" id="countinToggle" class="control" checked>
+    </div>
+    <div class="label-row">
+      <label>Show beat markers</label>
+      <input type="checkbox" id="markersToggle" class="control" checked>
+    </div>
+  </div>
+  <div class="card">
+    <h3>About</h3>
+    <div class="muted">Drum Pad Practice — offline rudiment trainer for snare and practice pad.<br><br>Add to Home Screen on iOS for full-screen, app-like use.<br><br>All progress and presets are saved locally on this device.</div>
+  </div>
+</div>
+
+<!-- ============== TAB BAR ============== -->
+<div class="tab-bar" role="tablist">
+  <button data-screen="practice" class="active" role="tab" aria-label="Practice">
+    <svg class="tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    Practice
+  </button>
+  <button data-screen="routine" role="tab" aria-label="90-Day plan">
+    <svg class="tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="15" r="1.5" fill="currentColor"/></svg>
+    90-Day
+  </button>
+  <button data-screen="challenge" role="tab" aria-label="Challenge">
+    <svg class="tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    Challenge
+  </button>
+  <button data-screen="custom" role="tab" aria-label="Custom">
+    <svg class="tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    Custom
+  </button>
+  <button data-screen="rudiments" role="tab" aria-label="Library">
+    <svg class="tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    Library
+  </button>
+  <button data-screen="settings" role="tab" aria-label="Settings">
+    <svg class="tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Settings
+  </button>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+'use strict';
+
+// ============================================================
+// RUDIMENT LIBRARY (expanded)
+// note schema: { h: 'L'|'R', a?: bool (accent), f?: bool (flam), g?: 'drag' }
+// ============================================================
+const RUDIMENTS = [
+  // === SINGLES ===
+  { id:'sst', name:'Single stroke roll', cat:'Singles', level:'beg', sub:4,
+    notes:[{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'}],
+    desc:'Alternating R L. The foundation of all sticking.' },
+  { id:'sst4', name:'Single stroke 4', cat:'Singles', level:'beg', sub:6,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'L',a:true},{h:'R'},{h:'L'}],
+    desc:'4-note singles in triplets, accent on 1.' },
+  { id:'sst7', name:'Single stroke 7', cat:'Singles', level:'beg', sub:6,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R',a:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'}],
+    desc:'7-stroke singles on alternating accents.' },
+  { id:'gravity', name:'Gravity singles', cat:'Singles', level:'adv', sub:4,
+    notes:[{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'}],
+    desc:'Pure singles for high-tempo work. Practice 180+ BPM.' },
+
+  // === DOUBLES / ROLLS ===
+  { id:'dst', name:'Double stroke roll', cat:'Doubles & Rolls', level:'beg', sub:4,
+    notes:[{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'}],
+    desc:'RR LL — open roll, foundation for buzz roll.' },
+  { id:'tst', name:'Triple stroke roll', cat:'Doubles & Rolls', level:'int', sub:6,
+    notes:[{h:'R'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'L'}],
+    desc:'RRR LLL in triplet feel.' },
+  { id:'5sr', name:'5-stroke roll', cat:'Doubles & Rolls', level:'beg', sub:4,
+    notes:[{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R',a:true},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L',a:true}],
+    desc:'RRLLR LLRRL — ends on accent.' },
+  { id:'5srTrip', name:'5-stroke roll (triplet)', cat:'Doubles & Rolls', level:'int', sub:6,
+    notes:[{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R',a:true},{h:'L'}],
+    desc:'5-stroke in triplet feel.' },
+  { id:'6sr', name:'6-stroke roll', cat:'Doubles & Rolls', level:'int', sub:6,
+    notes:[{h:'R',a:true},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L',a:true}],
+    desc:'Accent, double, double, accent. Brilliant chops builder.' },
+  { id:'7sr', name:'7-stroke roll', cat:'Doubles & Rolls', level:'beg', sub:6,
+    notes:[{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R',a:true}],
+    desc:'LLRRLL R — ends on accented release.' },
+  { id:'9sr', name:'9-stroke roll', cat:'Doubles & Rolls', level:'int', sub:4,
+    notes:[{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R',a:true}],
+    desc:'Four doubles plus an accented release.' },
+  { id:'10sr', name:'10-stroke roll', cat:'Doubles & Rolls', level:'int', sub:4,
+    notes:[{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R',a:true},{h:'L',a:true}],
+    desc:'Four doubles plus two accented singles.' },
+  { id:'11sr', name:'11-stroke roll', cat:'Doubles & Rolls', level:'int', sub:6,
+    notes:[{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L',a:true}],
+    desc:'Five doubles plus accent.' },
+  { id:'13sr', name:'13-stroke roll', cat:'Doubles & Rolls', level:'adv', sub:4,
+    notes:[{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R',a:true}],
+    desc:'Six doubles plus accent.' },
+  { id:'15sr', name:'15-stroke roll', cat:'Doubles & Rolls', level:'adv', sub:4,
+    notes:[{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L',a:true}],
+    desc:'Seven doubles plus accent.' },
+  { id:'17sr', name:'17-stroke roll', cat:'Doubles & Rolls', level:'adv', sub:4,
+    notes:[{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R',a:true}],
+    desc:'Eight doubles plus accent.' },
+  { id:'stoneKiller', name:'Stone killer', cat:'Doubles & Rolls', level:'adv', sub:4,
+    notes:[{h:'R',a:true},{h:'R'},{h:'L',a:true},{h:'L'},{h:'R',a:true},{h:'R'},{h:'L',a:true},{h:'L'}],
+    desc:'Accented double-stroke roll. Builds finger control under accents.' },
+
+  // === PARADIDDLES ===
+  { id:'pd', name:'Single paradiddle', cat:'Paradiddles', level:'beg', sub:4,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'R'},{h:'L',a:true},{h:'R'},{h:'L'},{h:'L'}],
+    desc:'RLRR LRLL — the classic. Accent leads each group.' },
+  { id:'pdd', name:'Double paradiddle', cat:'Paradiddles', level:'beg', sub:6,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'R'},{h:'L',a:true},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'L'}],
+    desc:'RLRLRR LRLRLL — two extra singles before the diddle.' },
+  { id:'pdt', name:'Triple paradiddle', cat:'Paradiddles', level:'int', sub:4,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'R'},{h:'L',a:true},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'L'}],
+    desc:'RLRLRLRR LRLRLRLL — full two beats of 16ths.' },
+  { id:'pddd', name:'Paradiddle-diddle', cat:'Paradiddles', level:'int', sub:6,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'}],
+    desc:'RLRRLL — one-handed lead, no hand switch.' },
+  { id:'ipd', name:'Inverted paradiddle', cat:'Paradiddles', level:'int', sub:4,
+    notes:[{h:'R',a:true},{h:'L'},{h:'L'},{h:'R'},{h:'L',a:true},{h:'R'},{h:'R'},{h:'L'}],
+    desc:'RLLR LRRL — diddle in the middle.' },
+  { id:'rpd', name:'Reverse paradiddle', cat:'Paradiddles', level:'int', sub:4,
+    notes:[{h:'R'},{h:'R'},{h:'L'},{h:'R',a:true},{h:'L'},{h:'L'},{h:'R'},{h:'L',a:true}],
+    desc:'RRLR LLRL — diddle starts the group.' },
+  { id:'dragadiddle1', name:'Dragadiddle #1', cat:'Paradiddles', level:'adv', sub:4,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'R'},{h:'L',a:true,g:'drag'},{h:'R'},{h:'L'},{h:'L'}],
+    desc:'Paradiddle with drag on the second accent.' },
+  { id:'dragadiddle2', name:'Dragadiddle #2', cat:'Paradiddles', level:'adv', sub:4,
+    notes:[{h:'R',a:true,g:'drag'},{h:'L'},{h:'R'},{h:'R'},{h:'L',a:true,g:'drag'},{h:'R'},{h:'L'},{h:'L'}],
+    desc:'Paradiddle with drag on every accent.' },
+
+  // === FLAMS ===
+  { id:'flam', name:'Flam', cat:'Flams', level:'beg', sub:2,
+    notes:[{h:'R',a:true,f:true},{h:'L',a:true,f:true}],
+    desc:'Grace note immediately before primary stroke.' },
+  { id:'flamtap', name:'Flam tap', cat:'Flams', level:'int', sub:4,
+    notes:[{h:'R',a:true,f:true},{h:'R'},{h:'L',a:true,f:true},{h:'L'}],
+    desc:'Flam, tap on same hand, switch.' },
+  { id:'flamacc', name:'Flam accent', cat:'Flams', level:'int', sub:6,
+    notes:[{h:'R',a:true,f:true},{h:'L'},{h:'R'},{h:'L',a:true,f:true},{h:'R'},{h:'L'}],
+    desc:'Flam on 1, two singles, switch hands.' },
+  { id:'flamacue', name:'Flamacue', cat:'Flams', level:'int', sub:4,
+    notes:[{h:'R',f:true},{h:'L',a:true},{h:'R'},{h:'L'},{h:'R',f:true}],
+    desc:'Flam, accented single, two singles, ending flam.' },
+  { id:'flampd', name:'Flam paradiddle', cat:'Flams', level:'int', sub:4,
+    notes:[{h:'R',a:true,f:true},{h:'L'},{h:'R'},{h:'R'},{h:'L',a:true,f:true},{h:'R'},{h:'L'},{h:'L'}],
+    desc:'Paradiddle but the accent is a flam.' },
+  { id:'flampdd', name:'Flammed paradiddle-diddle', cat:'Flams', level:'adv', sub:6,
+    notes:[{h:'R',a:true,f:true},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'}],
+    desc:'Paradiddle-diddle starting with a flam.' },
+  { id:'pataflafla', name:'Pataflafla', cat:'Flams', level:'adv', sub:4,
+    notes:[{h:'R',a:true,f:true},{h:'L'},{h:'R'},{h:'L',a:true,f:true}],
+    desc:'Flam, two singles, flam — bookend pattern.' },
+  { id:'swissarmy', name:'Swiss army triplet', cat:'Flams', level:'int', sub:6,
+    notes:[{h:'R',a:true,f:true},{h:'R'},{h:'L'}],
+    desc:'Flam-tap-tap, alternating starts. Triplet feel.' },
+  { id:'swissflam', name:'Swiss flam tap', cat:'Flams', level:'adv', sub:4,
+    notes:[{h:'R',a:true,f:true},{h:'R'},{h:'L'},{h:'L',a:true,f:true},{h:'L'},{h:'R'}],
+    desc:'Flam-tap with reversed sticking on the off side.' },
+  { id:'invflamtap', name:'Inverted flam tap', cat:'Flams', level:'adv', sub:4,
+    notes:[{h:'R',f:true},{h:'L',a:true},{h:'L',f:true},{h:'R',a:true}],
+    desc:'Flam-tap with hand switch in the middle.' },
+  { id:'flamdrag', name:'Flam drag', cat:'Flams', level:'adv', sub:6,
+    notes:[{h:'R',a:true,f:true},{h:'L',g:'drag'},{h:'R'}],
+    desc:'Flam, drag, single — triplet feel.' },
+
+  // === DRAGS ===
+  { id:'drag', name:'Drag', cat:'Drags', level:'beg', sub:2,
+    notes:[{h:'R',a:true,g:'drag'},{h:'L',a:true,g:'drag'}],
+    desc:'Two grace notes (a buzz/double) before the primary.' },
+  { id:'sdrag', name:'Single drag tap', cat:'Drags', level:'int', sub:4,
+    notes:[{h:'R',a:true,g:'drag'},{h:'L',a:true},{h:'L',a:true,g:'drag'},{h:'R',a:true}],
+    desc:'Drag, accented tap, alternating.' },
+  { id:'ddrag', name:'Double drag tap', cat:'Drags', level:'int', sub:4,
+    notes:[{h:'R',g:'drag'},{h:'R',g:'drag'},{h:'R',a:true},{h:'L',g:'drag'},{h:'L',g:'drag'},{h:'L',a:true}],
+    desc:'Two drags then accented tap, alternating.' },
+  { id:'lesson25', name:'Lesson 25 (two & one)', cat:'Drags', level:'adv', sub:4,
+    notes:[{h:'R',g:'drag'},{h:'L',a:true},{h:'R',g:'drag'},{h:'L',a:true},{h:'R',a:true},{h:'L',a:true}],
+    desc:'Two drags then a single accented tap pair.' },
+  { id:'sdragdid', name:'Single dragadiddle', cat:'Drags', level:'adv', sub:4,
+    notes:[{h:'R',a:true,g:'drag'},{h:'L'},{h:'R'},{h:'R'},{h:'L',a:true,g:'drag'},{h:'R'},{h:'L'},{h:'L'}],
+    desc:'Paradiddle with drag on the accent.' },
+  { id:'dragparafe', name:'Drag paradiddle #1', cat:'Drags', level:'adv', sub:4,
+    notes:[{h:'R',a:true},{h:'L',g:'drag'},{h:'R',a:true},{h:'L'},{h:'R'},{h:'R'},{h:'L',a:true},{h:'R',g:'drag'},{h:'L',a:true},{h:'R'},{h:'L'},{h:'L'}],
+    desc:'Tap, drag, paradiddle.' },
+  { id:'dragpd2', name:'Drag paradiddle #2', cat:'Drags', level:'adv', sub:4,
+    notes:[{h:'R',a:true},{h:'R'},{h:'L',g:'drag'},{h:'R',a:true},{h:'L'},{h:'L'},{h:'L',a:true},{h:'L'},{h:'R',g:'drag'},{h:'L',a:true},{h:'R'},{h:'R'}],
+    desc:'Two singles, drag, paradiddle.' },
+  { id:'srata', name:'Single ratamacue', cat:'Drags', level:'adv', sub:6,
+    notes:[{h:'R',g:'drag'},{h:'L'},{h:'R'},{h:'L',a:true}],
+    desc:'Drag plus three singles ending on accent.' },
+  { id:'drata', name:'Double ratamacue', cat:'Drags', level:'adv', sub:6,
+    notes:[{h:'R',g:'drag'},{h:'R',g:'drag'},{h:'L'},{h:'R'},{h:'L',a:true}],
+    desc:'Two drags plus three singles ending on accent.' },
+  { id:'trata', name:'Triple ratamacue', cat:'Drags', level:'adv', sub:6,
+    notes:[{h:'R',g:'drag'},{h:'R',g:'drag'},{h:'R',g:'drag'},{h:'L'},{h:'R'},{h:'L',a:true}],
+    desc:'Three drags plus three singles ending on accent.' },
+
+  // === ACCENT STUDIES ===
+  { id:'acc1', name:'Accent on 1', cat:'Accent studies', level:'beg', sub:4,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'L'}],
+    desc:'Accent every downbeat. Foundation accent control.' },
+  { id:'acc13', name:'Accent on 1 & 3', cat:'Accent studies', level:'beg', sub:4,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R',a:true},{h:'L'}],
+    desc:'Accent on quarter notes.' },
+  { id:'accE', name:'Accent on the e', cat:'Accent studies', level:'int', sub:4,
+    notes:[{h:'R'},{h:'L',a:true},{h:'R'},{h:'L'}],
+    desc:'Accent on the second 16th.' },
+  { id:'accAnd', name:'Accent on the and', cat:'Accent studies', level:'int', sub:4,
+    notes:[{h:'R'},{h:'L'},{h:'R',a:true},{h:'L'}],
+    desc:'Backbeat-style accent on the &.' },
+  { id:'accA', name:'Accent on the a', cat:'Accent studies', level:'int', sub:4,
+    notes:[{h:'R'},{h:'L'},{h:'R'},{h:'L',a:true}],
+    desc:'Accent on the last 16th.' },
+  { id:'allacc', name:'Accent shift study', cat:'Accent studies', level:'adv', sub:4,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L',a:true},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R',a:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L',a:true}],
+    desc:'Shift accent through all four 16th positions.' },
+  { id:'accDouble', name:'Doubled-up accent', cat:'Accent studies', level:'int', sub:4,
+    notes:[{h:'R',a:true},{h:'L',a:true},{h:'R'},{h:'L'},{h:'R',a:true},{h:'L',a:true},{h:'R'},{h:'L'}],
+    desc:'Two accents, two ghost — control study.' },
+  { id:'moeller2', name:'Moeller 2-stroke', cat:'Accent studies', level:'int', sub:4,
+    notes:[{h:'R',a:true},{h:'R'},{h:'L',a:true},{h:'L'}],
+    desc:'Down-up-down-up. Moeller technique foundation.' },
+  { id:'moeller3', name:'Moeller 3-stroke', cat:'Accent studies', level:'int', sub:6,
+    notes:[{h:'R',a:true},{h:'R'},{h:'R'},{h:'L',a:true},{h:'L'},{h:'L'}],
+    desc:'Whip down + 2 taps + upstroke per hand.' },
+
+  // === ODD GROUPINGS ===
+  { id:'tup3', name:'Triplet feel', cat:'Odd groupings', level:'beg', sub:3,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'L',a:true},{h:'R'},{h:'L'}],
+    desc:'Eighth-note triplets, accent on each downbeat.' },
+  { id:'group3in4', name:'3-over-4', cat:'Odd groupings', level:'adv', sub:4,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'L',a:true},{h:'R'},{h:'L'},{h:'R',a:true},{h:'L'},{h:'R'},{h:'L',a:true},{h:'R'},{h:'L'}],
+    desc:'Group 16ths in 3s — accent every third note.' },
+  { id:'group5', name:'5-note grouping', cat:'Odd groupings', level:'adv', sub:4,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L',a:true},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R',a:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L',a:true},{h:'R'},{h:'L'},{h:'R'},{h:'L'}],
+    desc:'Accent every 5th 16th — 5:4 polyrhythmic feel.' },
+  { id:'group7', name:'7-note grouping', cat:'Odd groupings', level:'adv', sub:4,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L',a:true},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R',a:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L',a:true},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'}],
+    desc:'Accent every 7th 16th — 7:4 feel.' },
+  { id:'sextuplet', name:'Sextuplet feel', cat:'Odd groupings', level:'int', sub:6,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'}],
+    desc:'1/16 triplets — RLRLRL with downbeat accent.' },
+
+  // === HYBRID / CHOPS ===
+  { id:'cheese', name:'Cheese', cat:'Hybrid chops', level:'adv', sub:6,
+    notes:[{h:'R',a:true,f:true},{h:'L'},{h:'R'},{h:'L'}],
+    desc:'Flammed first note + 3 singles. AKA "herta".' },
+  { id:'cheesePd', name:'Cheese paradiddle', cat:'Hybrid chops', level:'adv', sub:4,
+    notes:[{h:'R',a:true,f:true},{h:'L'},{h:'R'},{h:'R'},{h:'L',a:true,f:true},{h:'R'},{h:'L'},{h:'L'}],
+    desc:'Paradiddle with cheese (flam) on the accents.' },
+  { id:'eggBeater', name:'Egg beater', cat:'Hybrid chops', level:'adv', sub:6,
+    notes:[{h:'R',a:true},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L',a:true},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'}],
+    desc:'Accent + double-double pattern, alternating.' },
+  { id:'flamHerta', name:'Flam herta', cat:'Hybrid chops', level:'adv', sub:6,
+    notes:[{h:'R',a:true,f:true},{h:'L'},{h:'R'},{h:'R'},{h:'L'}],
+    desc:'Flam, single, double, single — herta feel.' },
+  { id:'fivelet', name:'Fivelet (5-tuplet)', cat:'Hybrid chops', level:'adv', sub:5,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'}],
+    desc:'5 evenly-spaced strokes per beat. Quintuplet feel.' },
+  { id:'septuplet', name:'Septuplet (7-tuplet)', cat:'Hybrid chops', level:'adv', sub:7,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'}],
+    desc:'7 evenly-spaced strokes per beat.' },
+  { id:'paraDiddleDiddle', name:'Para-diddle-diddle hybrid', cat:'Hybrid chops', level:'adv', sub:4,
+    notes:[{h:'R',a:true},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L',a:true},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'}],
+    desc:'Paradiddle+diddle, alternating leads. Marching staple.' },
+  { id:'cheeseInverted', name:'Inverted cheese', cat:'Hybrid chops', level:'adv', sub:4,
+    notes:[{h:'R'},{h:'L',a:true,f:true},{h:'R'},{h:'L'}],
+    desc:'Cheese with flam on the e.' },
+];
+
+// ============================================================
+// 90-DAY ROUTINE — calibrated for an intermediate player
+// (~120 BPM 16ths is your edge, so we start there with harder
+//  patterns and ramp into advanced territory by day 90)
+// ============================================================
+const PHASES = [
+  // Week 1-2: re-establish foundation at solid intermediate tempo
+  { weeks:[1,2], focus:'Foundation at tempo',
+    cats:['Singles','Doubles & Rolls','Paradiddles','Accent studies'],
+    levels:['beg','int'], bpmStart:100, bpmEnd:115 },
+  // Week 3-4: paradiddle variations + flam intro
+  { weeks:[3,4], focus:'Paradiddle mastery + flams',
+    cats:['Paradiddles','Flams','Doubles & Rolls','Accent studies'],
+    levels:['beg','int'], bpmStart:110, bpmEnd:125 },
+  // Week 5-6: flam control under tempo
+  { weeks:[5,6], focus:'Flam control',
+    cats:['Flams','Paradiddles','Doubles & Rolls'],
+    levels:['int'], bpmStart:115, bpmEnd:130 },
+  // Week 7-8: drags introduced + accent shifting
+  { weeks:[7,8], focus:'Drags & accent shifts',
+    cats:['Drags','Flams','Accent studies','Paradiddles'],
+    levels:['int','adv'], bpmStart:115, bpmEnd:130 },
+  // Week 9-10: speed building — push past current ceiling
+  { weeks:[9,10], focus:'Speed building',
+    cats:['Singles','Doubles & Rolls','Paradiddles','Hybrid chops'],
+    levels:['int','adv'], bpmStart:125, bpmEnd:145 },
+  // Week 11-12: hybrid chops & odd groupings
+  { weeks:[11,12], focus:'Hybrid chops & polyrhythms',
+    cats:['Hybrid chops','Odd groupings','Drags','Flams'],
+    levels:['int','adv'], bpmStart:120, bpmEnd:140 },
+  // Week 13: integration & high-tempo work
+  { weeks:[13], focus:'Integration & high-tempo',
+    cats:['Singles','Doubles & Rolls','Hybrid chops','Paradiddles','Drags'],
+    levels:['adv'], bpmStart:130, bpmEnd:155 },
+];
+
+function seededRand(seed) {
+  return function() {
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = seed;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function generateDay(dayNum) {
+  const week = Math.ceil(dayNum / 7);
+  const phase = PHASES.find(p => p.weeks.includes(week)) || PHASES[PHASES.length-1];
+  const rand = seededRand(dayNum * 7919 + 31);
+
+  const eligible = RUDIMENTS.filter(r =>
+    phase.cats.includes(r.cat) && phase.levels.includes(r.level)
+  );
+
+  // Warmup: always alternating singles to wake up the wrists
+  const warmup = RUDIMENTS.find(r => r.id === 'sst');
+
+  // Pick 4 unique focus rudiments biased toward variety across categories
+  const byCategory = {};
+  eligible.forEach(r => {
+    if (!byCategory[r.cat]) byCategory[r.cat] = [];
+    byCategory[r.cat].push(r);
+  });
+  const cats = Object.keys(byCategory);
+  // Fisher-Yates shuffle (sort-with-random-comparator is biased)
+  const shuffledCats = [...cats];
+  for (let i = shuffledCats.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [shuffledCats[i], shuffledCats[j]] = [shuffledCats[j], shuffledCats[i]];
+  }
+  const focus = [];
+  for (const c of shuffledCats) {
+    if (focus.length >= 4) break;
+    const pool = byCategory[c];
+    if (pool.length > 0) {
+      const pick = pool[Math.floor(rand() * pool.length)];
+      if (!focus.find(f => f.id === pick.id)) focus.push(pick);
+    }
+  }
+  // Fill remaining slots from any eligible
+  const remainingPool = eligible.filter(r => !focus.find(f => f.id === r.id));
+  while (focus.length < 4 && remainingPool.length > 0) {
+    const idx = Math.floor(rand() * remainingPool.length);
+    focus.push(remainingPool.splice(idx, 1)[0]);
+  }
+  while (focus.length < 4) focus.push(eligible[0] || warmup);
+
+  // Cooldown: accent control study, slower
+  const cooldown = RUDIMENTS.find(r => r.id === 'acc13');
+
+  const dayProgress = (dayNum - 1) / 89;
+  const bpm = Math.round(phase.bpmStart + (phase.bpmEnd - phase.bpmStart) * dayProgress);
+
+  return {
+    day: dayNum,
+    week,
+    focus: phase.focus,
+    blocks: [
+      { name:'Warmup — alternating singles', rudiment:warmup, minutes:5, bpm:Math.max(80, bpm-15) },
+      { name:`Focus 1 · ${focus[0].name}`,    rudiment:focus[0],   minutes:5, bpm:bpm-5 },
+      { name:`Focus 2 · ${focus[1].name}`,    rudiment:focus[1],   minutes:5, bpm:bpm },
+      { name:`Focus 3 · ${focus[2].name}`,    rudiment:focus[2],   minutes:5, bpm:bpm },
+      { name:`Focus 4 · ${focus[3].name}`,    rudiment:focus[3],   minutes:5, bpm:bpm+3 },
+      { name:'Cooldown — accents on 1 & 3',   rudiment:cooldown,   minutes:5, bpm:Math.max(80, bpm-20) },
+    ]
+  };
+}
+
+// ============================================================
+// AUDIO ENGINE — soft, musical click with filtered sine + noise
+// ============================================================
+let audioCtx = null;
+let masterGain = null;
+let masterCompressor = null;
+
+function ensureAudio() {
+  if (!audioCtx) {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    audioCtx = new Ctx();
+    masterCompressor = audioCtx.createDynamicsCompressor();
+    masterCompressor.threshold.value = -10;
+    masterCompressor.ratio.value = 4;
+    masterCompressor.attack.value = 0.001;
+    masterCompressor.release.value = 0.05;
+    masterGain = audioCtx.createGain();
+    const v = parseInt(document.getElementById('volSlider').value || '60', 10);
+    masterGain.gain.value = (v / 100) * 0.6;
+    masterGain.connect(masterCompressor);
+    masterCompressor.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+// Soft musical click: filtered tone burst + tiny noise transient
+function playClick(time, hand, accent, isFlam, isDrag) {
+  if (!audioCtx) return;
+  const soundType = document.getElementById('clickSoundSelect').value;
+  const accentEnabled = document.getElementById('accentToggle').checked;
+  const panEnabled = document.getElementById('panToggle').checked;
+  const pitchDiff = document.getElementById('pitchDiffToggle').checked;
+
+  // Accents are perceived as punchy because they have:
+  //  1. More low-mid body (a brief bass thump under the main hit)
+  //  2. Slightly more high-frequency energy (filter opens, but moderately)
+  //  3. A faster attack — but not so fast it becomes clicky
+  //  4. Same fundamental pitch — pitch shifts confuse which note is which
+  const accentVolMul = accent ? (accentEnabled ? 3.5 : 1.5) : 1.0;
+  const accentFilterMul = accent ? (accentEnabled ? 1.9 : 1.3) : 1.0;
+  const accentAttackMul = accent ? 0.5 : 1.0;     // sharper attack, between clicky and soft
+  const accentNoiseBoost = accent ? 2.0 : 1.0;    // moderate transient — adds click without harshness
+  const accentForceNoise = accent && accentEnabled; // every voice gets a little click on accents
+  const accentThump = accent && accentEnabled;    // add low-frequency body to accents
+
+  const tick = (t, vol, freqMul = 1) => {
+    if (t < audioCtx.currentTime - 0.05) return; // skip if too late
+
+    // Profile per voice — tuned for clarity and pleasantness
+    // Pitch differentiation uses musical intervals (perfect 5th between hands)
+    let baseFreq, oscType, decay, hasNoise, filterFreq, filterQ, attack;
+    switch (soundType) {
+      case 'wood':
+        // Warm wood-block character — sine fundamental + filtered noise
+        baseFreq = pitchDiff ? (hand === 'L' ? 480 : 720) : 600;
+        oscType = 'sine'; decay = 0.07; hasNoise = true;
+        filterFreq = 2600; filterQ = 6; attack = 0.001;
+        break;
+      case 'rim':
+        // Rim-shot click — bright triangle with sharp noise transient
+        baseFreq = pitchDiff ? (hand === 'L' ? 420 : 630) : 525;
+        oscType = 'triangle'; decay = 0.05; hasNoise = true;
+        filterFreq = 3200; filterQ = 4; attack = 0.0008;
+        break;
+      case 'block':
+        // High plastic block — clean and percussive
+        baseFreq = pitchDiff ? (hand === 'L' ? 880 : 1320) : 1100;
+        oscType = 'triangle'; decay = 0.04; hasNoise = false;
+        filterFreq = 4000; filterQ = 5; attack = 0.0008;
+        break;
+      case 'tone':
+        // Pure musical click — like a metronome with body
+        baseFreq = pitchDiff ? (hand === 'L' ? 660 : 990) : 825;
+        oscType = 'sine'; decay = 0.08; hasNoise = false;
+        filterFreq = 3000; filterQ = 1.5; attack = 0.002;
+        break;
+      case 'click':
+      default:
+        // Sharp digital click
+        baseFreq = pitchDiff ? (hand === 'L' ? 1200 : 1800) : 1500;
+        oscType = 'square'; decay = 0.022; hasNoise = false;
+        filterFreq = 3800; filterQ = 8; attack = 0.0005;
+        break;
+    }
+    // Apply accent shaping (pitch stays the same — it's all in the transient)
+    const f = baseFreq * freqMul;
+    filterFreq = filterFreq * accentFilterMul;
+    attack = attack * accentAttackMul;
+    if (accent) decay *= 1.2; // accents ring slightly longer for more body
+    // Force a noise transient on accents even for voices that don't normally have one
+    if (accentForceNoise) hasNoise = true;
+
+    // Build voice: osc -> filter -> gain -> (pan) -> master
+    const osc = audioCtx.createOscillator();
+    osc.type = oscType;
+    osc.frequency.value = f;
+    // Subtle natural downsweep on all notes (gives body, no inversion confusion)
+    osc.frequency.setValueAtTime(f * 1.04, t);
+    osc.frequency.exponentialRampToValueAtTime(f, t + 0.008);
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = filterFreq;
+    filter.Q.value = filterQ;
+
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(vol, t + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+
+    osc.connect(filter);
+    filter.connect(gain);
+
+    let outNode = gain;
+    if (panEnabled && audioCtx.createStereoPanner) {
+      const pan = audioCtx.createStereoPanner();
+      pan.pan.value = hand === 'L' ? -0.6 : 0.6;
+      gain.connect(pan);
+      outNode = pan;
+    }
+    outNode.connect(masterGain);
+
+    osc.start(t);
+    osc.stop(t + decay + 0.05);
+
+    // Noise transient — provides natural attack texture for noise-bearing voices.
+    // On accents we keep this modest; the accent's punch comes mainly from the thump layer below.
+    if (hasNoise) {
+      const noiseDur = accent ? 0.014 : 0.012;
+      const bufSize = Math.max(1, Math.floor(audioCtx.sampleRate * noiseDur));
+      const noiseBuf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const data = noiseBuf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+      }
+      const noiseSrc = audioCtx.createBufferSource();
+      noiseSrc.buffer = noiseBuf;
+      const noiseFilter = audioCtx.createBiquadFilter();
+      noiseFilter.type = 'bandpass';
+      // Accents use a slightly higher bandpass for more click; taps stay warm
+      noiseFilter.frequency.value = filterFreq * (accent ? 0.95 : 0.7);
+      noiseFilter.Q.value = accent ? 1.2 : 1.5;
+      const noiseGain = audioCtx.createGain();
+      const noiseLevel = vol * 0.3 * accentNoiseBoost;
+      noiseGain.gain.setValueAtTime(noiseLevel, t);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, t + noiseDur);
+      noiseSrc.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      let nOut = noiseGain;
+      if (panEnabled && audioCtx.createStereoPanner) {
+        const np = audioCtx.createStereoPanner();
+        np.pan.value = hand === 'L' ? -0.6 : 0.6;
+        noiseGain.connect(np);
+        nOut = np;
+      }
+      nOut.connect(masterGain);
+      noiseSrc.start(t);
+      noiseSrc.stop(t + noiseDur + 0.02);
+    }
+
+    // Accent thump — a low sine pitched well below the main body, short envelope.
+    // This is what gives accents their "punch" without making them clicky.
+    if (accentThump) {
+      const thumpFreq = baseFreq * 0.45;          // roughly an octave + a fifth below
+      const thumpDecay = 0.09;
+      const thumpOsc = audioCtx.createOscillator();
+      thumpOsc.type = 'sine';
+      // Slight downsweep on the thump for natural drum-shell character
+      thumpOsc.frequency.setValueAtTime(thumpFreq * 1.3, t);
+      thumpOsc.frequency.exponentialRampToValueAtTime(thumpFreq, t + 0.04);
+      const thumpGain = audioCtx.createGain();
+      const thumpVol = vol * 0.55;
+      thumpGain.gain.setValueAtTime(0.0001, t);
+      thumpGain.gain.exponentialRampToValueAtTime(thumpVol, t + 0.003);
+      thumpGain.gain.exponentialRampToValueAtTime(0.0001, t + thumpDecay);
+      thumpOsc.connect(thumpGain);
+      let thumpOut = thumpGain;
+      if (panEnabled && audioCtx.createStereoPanner) {
+        const tp = audioCtx.createStereoPanner();
+        tp.pan.value = hand === 'L' ? -0.6 : 0.6;
+        thumpGain.connect(tp);
+        thumpOut = tp;
+      }
+      thumpOut.connect(masterGain);
+      thumpOsc.start(t);
+      thumpOsc.stop(t + thumpDecay + 0.05);
+    }
+  };
+
+  // Base volume: lower floor so accent has headroom. Multiplier is applied here,
+  // clamped to keep the output safe through the compressor.
+  const baseVol = Math.min(0.85, 0.22 * accentVolMul);
+
+  if (isFlam) {
+    tick(time - 0.028, baseVol * 0.32, 0.88);
+    tick(time, baseVol, 1);
+  } else if (isDrag) {
+    tick(time - 0.045, baseVol * 0.32, 0.92);
+    tick(time - 0.022, baseVol * 0.32, 0.92);
+    tick(time, baseVol, 1);
+  } else {
+    tick(time, baseVol, 1);
+  }
+}
+
+// ============================================================
+// PLAYBACK ENGINE
+// ============================================================
+let isPlaying = false;
+let currentPattern = null;
+let currentBPM = 100;
+let currentSubdiv = 4;
+let currentNoteIdx = 0;
+let nextNoteTime = 0;
+let scheduleTimer = null;
+let loopsPlayed = 0;
+let loopLimit = 8;
+let onPatternEnd = null;
+let countinRemaining = 0;
+let highlightQueue = []; // { time, idx }
+
+const SCHEDULE_AHEAD = 0.1;
+const SCHEDULE_INTERVAL_MS = 25;
+
+function noteDuration() {
+  const secondsPerBeat = 60.0 / currentBPM;
+  return secondsPerBeat / currentSubdiv;
+}
+
+function scheduler() {
+  if (!audioCtx || !isPlaying) return;
+  while (nextNoteTime < audioCtx.currentTime + SCHEDULE_AHEAD) {
+    if (countinRemaining > 0) {
+      const t = nextNoteTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const filter = audioCtx.createBiquadFilter();
+      osc.type = 'sine';
+      osc.frequency.value = countinRemaining === 4 ? 1200 : 880;
+      filter.type = 'lowpass'; filter.frequency.value = 2000;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.4, t + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+      osc.connect(filter); filter.connect(gain); gain.connect(masterGain);
+      osc.start(t); osc.stop(t + 0.1);
+      countinRemaining--;
+      nextNoteTime += 60.0 / currentBPM;
+      if (countinRemaining === 0) currentNoteIdx = 0;
+      continue;
+    }
+    if (!currentPattern) break;
+    const note = currentPattern.notes[currentNoteIdx];
+    playClick(nextNoteTime, note.h, note.a, note.f, note.g === 'drag');
+    highlightQueue.push({ time: nextNoteTime, idx: currentNoteIdx });
+
+    nextNoteTime += noteDuration();
+    currentNoteIdx++;
+    if (currentNoteIdx >= currentPattern.notes.length) {
+      currentNoteIdx = 0;
+      loopsPlayed++;
+      if (loopLimit > 0 && loopsPlayed >= loopLimit) {
+        // Kill the scheduler immediately so no further notes get queued,
+        // but let already-scheduled audio play out before we flip UI state.
+        if (scheduleTimer) { clearInterval(scheduleTimer); scheduleTimer = null; }
+        const stopAt = nextNoteTime;
+        const delayStop = (stopAt - audioCtx.currentTime) * 1000 + 50;
+        setTimeout(() => {
+          if (!isPlaying) return;
+          stopPlay();
+          if (onPatternEnd) { const cb = onPatternEnd; onPatternEnd = null; cb(); }
+        }, Math.max(0, delayStop));
+        return;
+      }
+    }
+  }
+}
+
+// rAF-driven highlight using audioCtx clock for sub-frame accuracy
+let rafId = null;
+function tickHighlights() {
+  if (!isPlaying || !audioCtx) { rafId = null; return; }
+  const now = audioCtx.currentTime;
+  // Find the latest entry whose time has passed; clear earlier ones
+  let activeIdx = -1;
+  while (highlightQueue.length && highlightQueue[0].time <= now) {
+    activeIdx = highlightQueue[0].idx;
+    highlightQueue.shift();
+  }
+  if (activeIdx >= 0) highlightCell(activeIdx);
+  rafId = requestAnimationFrame(tickHighlights);
+}
+
+function startPlay() {
+  ensureAudio();
+  if (!audioCtx || !currentPattern) return;
+  isPlaying = true;
+  loopsPlayed = 0;
+  currentNoteIdx = 0;
+  highlightQueue = [];
+  countinRemaining = document.getElementById('countinToggle').checked ? 4 : 0;
+  nextNoteTime = audioCtx.currentTime + 0.12;
+  if (scheduleTimer) clearInterval(scheduleTimer);
+  scheduleTimer = setInterval(scheduler, SCHEDULE_INTERVAL_MS);
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(tickHighlights);
+  const btn = document.getElementById('playBtn');
+  if (btn) {
+    btn.textContent = '■ Stop';
+    btn.classList.add('danger');
+    btn.classList.remove('primary');
+  }
+  requestWakeLock();
+}
+
+function stopPlay() {
+  isPlaying = false;
+  if (scheduleTimer) { clearInterval(scheduleTimer); scheduleTimer = null; }
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  highlightQueue = [];
+  lastHighlight = -1;
+  // Clear onPatternEnd unless something explicitly set it for this play (challenge mode)
+  // The challenge sets it right before calling startPlay; we don't clear here.
+  document.querySelectorAll('.beat-cell.active').forEach(el => el.classList.remove('active'));
+  const btn = document.getElementById('playBtn');
+  if (btn) {
+    btn.textContent = '▶ Play';
+    btn.classList.remove('danger');
+    btn.classList.add('primary');
+  }
+  releaseWakeLock();
+}
+
+function togglePlay() {
+  if (isPlaying) stopPlay();
+  else { onPatternEnd = null; startPlay(); }
+}
+
+// ============================================================
+// PRACTICE UI
+// ============================================================
+function loadPattern(rud) {
+  // Deep-copy so subdivision changes / future edits never mutate
+  // the canonical RUDIMENTS entry.
+  currentPattern = {
+    id: rud.id,
+    name: rud.name,
+    cat: rud.cat,
+    level: rud.level,
+    sub: rud.sub,
+    desc: rud.desc,
+    notes: rud.notes.map(n => ({ ...n }))
+  };
+  currentSubdiv = rud.sub;
+  const subSel = document.getElementById('subdivSelect');
+  if (subSel) {
+    // Add option dynamically if pattern uses an unusual subdivision
+    if (![...subSel.options].some(o => o.value === String(rud.sub))) {
+      const opt = document.createElement('option');
+      opt.value = String(rud.sub);
+      opt.textContent = subdivLabel(rud.sub);
+      subSel.appendChild(opt);
+    }
+    subSel.value = String(rud.sub);
+  }
+  const patSel = document.getElementById('patternSelect');
+  if (patSel) {
+    if ([...patSel.options].some(o => o.value === rud.id)) patSel.value = rud.id;
+  }
+  document.getElementById('patternName').textContent = rud.name;
+  document.getElementById('patternDesc').textContent = rud.desc || '';
+  renderBeatTrack();
+  updateTempoDisplay();
+}
+
+function subdivLabel(sub) {
+  return sub === 1 ? '¼ note' :
+         sub === 2 ? '⅛ note' :
+         sub === 3 ? '⅛ triplet' :
+         sub === 4 ? '1/16 note' :
+         sub === 5 ? 'Quintuplet' :
+         sub === 6 ? '1/16 triplet' :
+         sub === 7 ? 'Septuplet' :
+         `${sub}-tuplet`;
+}
+
+function renderBeatTrack() {
+  const track = document.getElementById('beatTrack');
+  const wrap = document.getElementById('beatTrackWrap');
+  track.innerHTML = '';
+  if (!currentPattern) return;
+  const showMarkers = document.getElementById('markersToggle').checked;
+
+  // Group notes by beat using subdivision count
+  const sub = currentSubdiv;
+  const totalNotes = currentPattern.notes.length;
+  const beatCount = Math.ceil(totalNotes / sub);
+  let noteIdx = 0;
+
+  for (let b = 0; b < beatCount; b++) {
+    const group = document.createElement('div');
+    group.className = 'beat-group';
+    if (showMarkers) group.dataset.beat = (b + 1);
+
+    const cellsThisBeat = Math.min(sub, totalNotes - noteIdx);
+    for (let n = 0; n < cellsThisBeat; n++) {
+      const note = currentPattern.notes[noteIdx];
+      const cell = document.createElement('div');
+      cell.className = 'beat-cell ' + (note.h === 'L' ? 'left' : 'right');
+      cell.setAttribute('role', 'listitem');
+      if (note.a) cell.classList.add('accent');
+      if (note.f) cell.classList.add('flam');
+      if (note.g === 'drag') cell.classList.add('drag-mark');
+      cell.textContent = note.h;
+      cell.dataset.idx = noteIdx;
+      let aria = `${note.h === 'L' ? 'Left' : 'Right'} hand`;
+      if (note.a) aria += ', accent';
+      if (note.f) aria += ', flam';
+      if (note.g === 'drag') aria += ', drag';
+      cell.setAttribute('aria-label', aria);
+      group.appendChild(cell);
+      noteIdx++;
+    }
+    track.appendChild(group);
+  }
+
+  // Toggle scroll mode if content overflows
+  wrap.classList.toggle('with-numbers', showMarkers);
+  // After layout, decide alignment
+  requestAnimationFrame(() => {
+    const overflow = track.scrollWidth > wrap.clientWidth;
+    track.classList.toggle('scrolling', overflow);
+    wrap.scrollLeft = 0;
+  });
+}
+
+let lastHighlight = -1;
+function highlightCell(idx) {
+  if (idx === lastHighlight) return;
+  const cells = document.querySelectorAll('#beatTrack .beat-cell');
+  if (lastHighlight >= 0 && cells[lastHighlight]) cells[lastHighlight].classList.remove('active');
+  const cell = cells[idx];
+  if (cell) {
+    cell.classList.add('active');
+    // Auto-scroll horizontally if needed
+    const wrap = document.getElementById('beatTrackWrap');
+    if (wrap && cell.offsetParent) {
+      const cellLeft = cell.offsetLeft;
+      const cellRight = cellLeft + cell.offsetWidth;
+      const viewLeft = wrap.scrollLeft;
+      const viewRight = viewLeft + wrap.clientWidth;
+      const margin = 60;
+      if (cellRight + margin > viewRight) {
+        wrap.scrollTo({ left: cellRight - wrap.clientWidth + margin, behavior: 'smooth' });
+      } else if (cellLeft - margin < viewLeft) {
+        wrap.scrollTo({ left: Math.max(0, cellLeft - margin), behavior: 'smooth' });
+      }
+    }
+  }
+  lastHighlight = idx;
+}
+
+function updateTempoDisplay() {
+  document.getElementById('bpmDisplay').textContent = currentBPM;
+  const slider = document.getElementById('tempoSlider');
+  if (slider) slider.value = currentBPM;
+  const subText = subdivLabel(currentSubdiv).toLowerCase().replace('1/16', 'sixteenth').replace('⅛', 'eighth').replace('¼', 'quarter');
+  document.getElementById('tempoDisplay').textContent = `${currentBPM} BPM · ${subText}`;
+}
+
+function adjustTempo(delta) {
+  currentBPM = Math.max(40, Math.min(260, currentBPM + delta));
+  updateTempoDisplay();
+}
+
+// Tap tempo
+let tapTimes = [];
+function tapTempo() {
+  const now = Date.now();
+  tapTimes = tapTimes.filter(t => now - t < 2500);
+  tapTimes.push(now);
+  if (tapTimes.length >= 2) {
+    const intervals = [];
+    for (let i = 1; i < tapTimes.length; i++) intervals.push(tapTimes[i] - tapTimes[i-1]);
+    const avg = intervals.reduce((a,b) => a+b, 0) / intervals.length;
+    const bpm = Math.round(60000 / avg);
+    if (bpm >= 40 && bpm <= 260) {
+      currentBPM = bpm;
+      updateTempoDisplay();
+    }
+  }
+  showToast(`Tap ${tapTimes.length}`);
+}
+
+// ============================================================
+// PATTERN PICKER + LIBRARY
+// ============================================================
+function buildPatternSelect() {
+  const sel = document.getElementById('patternSelect');
+  sel.innerHTML = '';
+  const groups = {};
+  RUDIMENTS.forEach(r => { (groups[r.cat] = groups[r.cat] || []).push(r); });
+  Object.keys(groups).forEach(cat => {
+    const og = document.createElement('optgroup');
+    og.label = cat;
+    groups[cat].forEach(r => {
+      const o = document.createElement('option');
+      o.value = r.id;
+      const lvl = r.level === 'beg' ? '' : r.level === 'int' ? '·' : '··';
+      o.textContent = `${r.name}${lvl ? '  ' + lvl : ''}`;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  });
+  sel.addEventListener('change', () => {
+    const rud = RUDIMENTS.find(r => r.id === sel.value);
+    if (rud) loadPattern(rud);
+  });
+
+  // Also build challenge select
+  const chSel = document.getElementById('chPattern');
+  if (chSel) {
+    chSel.innerHTML = '';
+    Object.keys(groups).forEach(cat => {
+      const og = document.createElement('optgroup');
+      og.label = cat;
+      groups[cat].forEach(r => {
+        const o = document.createElement('option');
+        o.value = r.id;
+        o.textContent = r.name;
+        og.appendChild(o);
+      });
+      chSel.appendChild(og);
+    });
+    chSel.value = 'sst';
+  }
+}
+
+function buildRudimentList(filterText) {
+  const list = document.getElementById('rudimentList');
+  list.innerHTML = '';
+  const ft = (filterText || '').toLowerCase().trim();
+  const groups = {};
+  RUDIMENTS.forEach(r => {
+    if (ft && !(r.name.toLowerCase().includes(ft) || r.desc.toLowerCase().includes(ft) || r.cat.toLowerCase().includes(ft))) return;
+    (groups[r.cat] = groups[r.cat] || []).push(r);
+  });
+  if (Object.keys(groups).length === 0) {
+    list.innerHTML = '<div class="empty-state">No matches.</div>';
+    return;
+  }
+  Object.keys(groups).forEach(cat => {
+    const h = document.createElement('h3');
+    h.textContent = cat;
+    list.appendChild(h);
+    groups[cat].forEach(r => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.cursor = 'pointer';
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+          <div style="font-weight:600; font-size:15px;">${escapeHtml(r.name)}</div>
+          <span class="tag ${r.level}">${r.level}</span>
+        </div>
+        <div class="muted" style="margin-top:4px;">${escapeHtml(r.desc)}</div>`;
+      card.onclick = () => {
+        loadPattern(r);
+        switchScreen('practice');
+        showToast(`Loaded ${r.name}`);
+      };
+      list.appendChild(card);
+    });
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+// ============================================================
+// 90-DAY ROUTINE STATE
+// ============================================================
+const STORAGE_KEY = 'drumpad_routine_v2';
+const CUSTOM_KEY = 'drumpad_custom_v1';
+const CHALLENGE_KEY = 'drumpad_challenge_v1';
+
+function safeRead(key, fallback) {
+  try {
+    const s = localStorage.getItem(key);
+    return s ? JSON.parse(s) : fallback;
+  } catch { return fallback; }
+}
+function safeWrite(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
+
+function loadRoutineState() {
+  return safeRead(STORAGE_KEY, { startDate: null, completedDays: [] });
+}
+function saveRoutineState(state) { safeWrite(STORAGE_KEY, state); }
+
+function currentDayNumber(state) {
+  if (!state.startDate) return 1;
+  const start = new Date(state.startDate);
+  if (isNaN(start.getTime())) return 1;
+  // Compare local calendar dates (midnight-to-midnight) instead of raw ms,
+  // so DST transitions don't push us forward or backward a day.
+  const startMidnight = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const now = new Date();
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.round((todayMidnight - startMidnight) / (1000 * 60 * 60 * 24)) + 1;
+  return Math.max(1, Math.min(90, days));
+}
+
+function computeStreak(state) {
+  if (!state.completedDays || !state.completedDays.length) return 0;
+  const sorted = [...state.completedDays].sort((a,b) => b-a);
+  let streak = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i-1] - sorted[i] === 1) streak++;
+    else break;
+  }
+  return streak;
+}
+
+function renderRoutine() {
+  const state = loadRoutineState();
+  const today = currentDayNumber(state);
+  document.getElementById('stat-day').textContent = today;
+  document.getElementById('stat-streak').textContent = computeStreak(state);
+  document.getElementById('stat-done').textContent = state.completedDays.length;
+  document.getElementById('stat-pct').textContent = Math.round((state.completedDays.length / 90) * 100) + '%';
+
+  const list = document.getElementById('dayList');
+  list.innerHTML = '';
+  for (let d = 1; d <= 90; d++) {
+    const day = generateDay(d);
+    const completed = state.completedDays.includes(d);
+    const isToday = d === today;
+    const item = document.createElement('div');
+    item.className = 'day-item' + (completed ? ' completed' : '') + (isToday ? ' today' : '');
+    const week = Math.ceil(d/7);
+    const phase = PHASES.find(p => p.weeks.includes(week)) || PHASES[PHASES.length-1];
+    item.innerHTML = `
+      <div>
+        <div class="day-num">Day ${d}${isToday ? ' · today' : ''}</div>
+        <div class="day-meta">Week ${week} — ${escapeHtml(phase.focus)} · ${day.blocks[2].bpm} BPM</div>
+      </div>
+      <div class="day-check">${completed ? '✓' : ''}</div>`;
+    item.onclick = () => openSession(d);
+    list.appendChild(item);
+  }
+}
+
+function startTodaySession() {
+  const state = loadRoutineState();
+  if (!state.startDate) {
+    state.startDate = new Date().toISOString();
+    saveRoutineState(state);
+  }
+  const today = currentDayNumber(state);
+  openSession(today);
+}
+
+function resetRoutine() {
+  if (!confirm('Reset all 90-day progress? This cannot be undone.')) return;
+  saveRoutineState({ startDate: null, completedDays: [] });
+  renderRoutine();
+  showToast('Routine reset');
+}
+
+// ============================================================
+// SESSION
+// ============================================================
+let session = null;
+
+function openSession(dayNum) {
+  session = {
+    day: generateDay(dayNum),
+    blockIdx: 0,
+    blockElapsed: 0,
+    running: false,
+    timer: null,
+  };
+  document.getElementById('sessionTitle').textContent = `Day ${dayNum}`;
+  document.getElementById('sessionFocus').textContent = `Week ${session.day.week} — ${session.day.focus}`;
+  renderSessionBlocks();
+  updateSessionTimer();
+  switchScreen('session');
+}
+
+function renderSessionBlocks() {
+  const wrap = document.getElementById('sessionBlocks');
+  wrap.innerHTML = '';
+  session.day.blocks.forEach((b, i) => {
+    const div = document.createElement('div');
+    div.className = 'session-block';
+    if (i < session.blockIdx) div.classList.add('done');
+    if (i === session.blockIdx) div.classList.add('current');
+    div.innerHTML = `
+      <div class="block-head">
+        <div class="block-name">${escapeHtml(b.name)}</div>
+        <div class="block-time">${b.minutes}m · ${b.bpm} BPM</div>
+      </div>
+      <div class="block-meta">${escapeHtml(b.rudiment.name)}</div>`;
+    wrap.appendChild(div);
+  });
+}
+
+function updateSessionTimer() {
+  if (!session) return;
+  const totalSec = session.day.blocks.reduce((a,b) => a + b.minutes*60, 0);
+  let elapsedTotal = 0;
+  for (let i = 0; i < session.blockIdx; i++) elapsedTotal += session.day.blocks[i].minutes * 60;
+  elapsedTotal += session.blockElapsed;
+  const remaining = Math.max(0, totalSec - elapsedTotal);
+  const mm = Math.floor(remaining / 60);
+  const ss = remaining % 60;
+  document.getElementById('sessionTimer').textContent = `${mm}:${ss < 10 ? '0' : ''}${ss}`;
+  document.getElementById('sessionProgressFill').style.width = Math.min(100, (elapsedTotal / totalSec) * 100) + '%';
+}
+
+function startBlock() {
+  if (!session) return;
+  const block = session.day.blocks[session.blockIdx];
+  if (!block) { finishSession(); return; }
+  currentBPM = block.bpm;
+  loadPattern(block.rudiment);
+  loopLimit = 0; // sessions always loop infinitely until time elapses
+  // Don't mutate the loopCount selector here; the user's setting is restored on session exit.
+  onPatternEnd = null;
+  startPlay();
+}
+
+function toggleSession() {
+  if (!session) return;
+  const btn = document.getElementById('sessionPlayBtn');
+  if (!session.running) {
+    // First time starting: snapshot the user's loop-count preference
+    if (session.savedLoopCount === undefined) {
+      session.savedLoopCount = document.getElementById('loopCount').value;
+    }
+    session.running = true;
+    btn.textContent = 'Pause';
+    btn.classList.remove('primary');
+    btn.classList.add('danger');
+    startBlock();
+    session.timer = setInterval(() => {
+      if (!session || !session.running) return;
+      session.blockElapsed++;
+      const block = session.day.blocks[session.blockIdx];
+      if (session.blockElapsed >= block.minutes * 60) {
+        nextBlock();
+        return;
+      }
+      updateSessionTimer();
+    }, 1000);
+  } else {
+    session.running = false;
+    btn.textContent = 'Resume';
+    btn.classList.remove('danger');
+    btn.classList.add('primary');
+    if (session.timer) clearInterval(session.timer);
+    stopPlay();
+  }
+}
+
+function nextBlock() {
+  if (!session) return;
+  stopPlay();
+  session.blockIdx++;
+  session.blockElapsed = 0;
+  if (session.blockIdx >= session.day.blocks.length) {
+    finishSession();
+    return;
+  }
+  if (session.running) startBlock();
+  renderSessionBlocks();
+  updateSessionTimer();
+}
+
+function skipBlock() { if (session) nextBlock(); }
+
+function restoreUserLoopCount() {
+  if (session && session.savedLoopCount !== undefined) {
+    document.getElementById('loopCount').value = session.savedLoopCount;
+    loopLimit = parseInt(session.savedLoopCount, 10) || 0;
+  }
+}
+
+function finishSession() {
+  if (!session) return;
+  if (session.timer) clearInterval(session.timer);
+  stopPlay();
+  restoreUserLoopCount();
+  const state = loadRoutineState();
+  if (!state.completedDays.includes(session.day.day)) {
+    state.completedDays.push(session.day.day);
+    saveRoutineState(state);
+  }
+  showToast(`Day ${session.day.day} complete!`);
+  session = null;
+  renderRoutine();
+  switchScreen('routine');
+}
+
+function exitSession() {
+  if (!session) { switchScreen('routine'); return; }
+  if (!confirm('Exit session? Today\'s progress won\'t be saved.')) return;
+  if (session.timer) clearInterval(session.timer);
+  stopPlay();
+  restoreUserLoopCount();
+  session = null;
+  switchScreen('routine');
+}
+
+// ============================================================
+// CHALLENGE MODE
+// ============================================================
+let challenge = null;
+const challengeBest = safeRead(CHALLENGE_KEY, {});
+
+function chAdj(which, delta) {
+  const el = document.getElementById(which === 'start' ? 'chStartBpm' : 'chTargetBpm');
+  let v = parseInt(el.textContent, 10) + delta;
+  v = Math.max(40, Math.min(260, v));
+  el.textContent = v;
+  // Maintain start <= target
+  const s = parseInt(document.getElementById('chStartBpm').textContent, 10);
+  const t = parseInt(document.getElementById('chTargetBpm').textContent, 10);
+  if (s > t) {
+    if (which === 'start') document.getElementById('chTargetBpm').textContent = s;
+    else document.getElementById('chStartBpm').textContent = t;
+  }
+  renderChallengeBest();
+}
+
+function renderChallengeBest() {
+  const sel = document.getElementById('chPattern');
+  if (!sel || !sel.value) return;
+  const best = challengeBest[sel.value];
+  document.getElementById('chBest').textContent = best ? `Best: ${best} BPM` : 'No record yet.';
+}
+
+function toggleChallenge() {
+  if (challenge && challenge.running) {
+    stopChallenge(false);
+    return;
+  }
+  startChallenge();
+}
+
+function startChallenge() {
+  ensureAudio();
+  if (!audioCtx) return;
+  const patId = document.getElementById('chPattern').value;
+  const rud = RUDIMENTS.find(r => r.id === patId);
+  if (!rud) return;
+  const start = parseInt(document.getElementById('chStartBpm').textContent, 10);
+  const target = parseInt(document.getElementById('chTargetBpm').textContent, 10);
+  const step = parseInt(document.getElementById('chStep').value, 10);
+  const reps = parseInt(document.getElementById('chReps').value, 10);
+
+  challenge = {
+    rud, start, target, step, reps,
+    bpm: start, running: true,
+  };
+  loadPattern(rud);
+  switchScreen('practice');  // show the visual highlights too
+  // But we set the BPM and use the practice engine
+  currentBPM = start;
+  loopLimit = reps;
+  updateTempoDisplay();
+  document.getElementById('chBpmNow').textContent = start;
+  document.getElementById('chStatus').textContent = `Stage 1 — ${start} BPM`;
+  document.getElementById('chBarFill').style.width = '0%';
+  document.getElementById('chPlayBtn').textContent = '■ Stop challenge';
+  document.getElementById('chPlayBtn').classList.add('danger');
+  document.getElementById('chPlayBtn').classList.remove('primary');
+
+  scheduleNextChallengeStage();
+}
+
+function scheduleNextChallengeStage() {
+  if (!challenge || !challenge.running) return;
+  currentBPM = challenge.bpm;
+  updateTempoDisplay();
+  document.getElementById('chBpmNow').textContent = challenge.bpm;
+  const totalRange = Math.max(1, challenge.target - challenge.start);
+  const progress = Math.min(100, ((challenge.bpm - challenge.start) / totalRange) * 100);
+  document.getElementById('chBarFill').style.width = progress + '%';
+  document.getElementById('chStatus').textContent = `${challenge.bpm} BPM — ${challenge.reps} reps`;
+
+  loopLimit = challenge.reps;
+  onPatternEnd = () => {
+    if (!challenge || !challenge.running) return;
+    // Record best
+    const id = challenge.rud.id;
+    if (!challengeBest[id] || challenge.bpm > challengeBest[id]) {
+      challengeBest[id] = challenge.bpm;
+      safeWrite(CHALLENGE_KEY, challengeBest);
+    }
+    if (challenge.bpm >= challenge.target) {
+      stopChallenge(true);
+      return;
+    }
+    challenge.bpm = Math.min(challenge.target, challenge.bpm + challenge.step);
+    setTimeout(scheduleNextChallengeStage, 800); // brief pause between stages
+  };
+  startPlay();
+}
+
+function stopChallenge(success) {
+  if (!challenge) return;
+  challenge.running = false;
+  stopPlay();
+  document.getElementById('chPlayBtn').textContent = '▶ Start challenge';
+  document.getElementById('chPlayBtn').classList.add('primary');
+  document.getElementById('chPlayBtn').classList.remove('danger');
+  if (success) {
+    document.getElementById('chStatus').textContent = `🎉 Complete — ${challenge.target} BPM!`;
+    showToast(`Challenge complete!`);
+  } else {
+    document.getElementById('chStatus').textContent = `Stopped at ${challenge.bpm} BPM.`;
+  }
+  renderChallengeBest();
+  challenge = null;
+}
+
+// ============================================================
+// CUSTOM ACCENT BUILDER
+// ============================================================
+let customPattern = {
+  notes: [], sub: 4, name: 'Custom pattern', desc: 'Your custom pattern.'
+};
+let customSelectedIdx = -1;
+
+function customInit() {
+  customPattern = {
+    notes: Array.from({length:8}, (_, i) => ({ h: i % 2 === 0 ? 'R' : 'L' })),
+    sub: 4,
+    name: 'Custom pattern',
+    desc: 'Your custom pattern.'
+  };
+  customRender();
+}
+
+function customRender() {
+  const grid = document.getElementById('customGrid');
+  grid.innerHTML = '';
+  customPattern.notes.forEach((n, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'accent-cell ' + (n.h === 'L' ? 'l' : 'r');
+    if (n.a) cell.classList.add('accented');
+    if (n.f) cell.classList.add('flam');
+    if (n.g === 'drag') cell.classList.add('drag-mark');
+    if (i === customSelectedIdx) cell.classList.add('selected');
+    cell.textContent = n.h;
+    cell.setAttribute('role', 'button');
+    cell.setAttribute('tabindex', '0');
+    cell.onclick = () => {
+      if (customSelectedIdx === i) {
+        customPattern.notes[i].a = !customPattern.notes[i].a;
+        customRender();
+      } else {
+        customSelectedIdx = i;
+        customRender();
+        const parts = [];
+        if (n.a) parts.push('accent');
+        if (n.f) parts.push('flam');
+        if (n.g === 'drag') parts.push('drag');
+        const desc = parts.length ? ` (${parts.join(', ')})` : '';
+        document.getElementById('customSelInfo').textContent =
+          `Note ${i+1}: ${n.h === 'L' ? 'Left' : 'Right'}${desc}. Tap again to toggle accent.`;
+      }
+    };
+    grid.appendChild(cell);
+  });
+  if (customSelectedIdx === -1 || customSelectedIdx >= customPattern.notes.length) {
+    document.getElementById('customSelInfo').textContent = 'Tap a cell to select it.';
+    customSelectedIdx = -1;
+  }
+}
+
+function customApplyStick() {
+  const len = parseInt(document.getElementById('customLength').value, 10);
+  const sub = parseInt(document.getElementById('customSubdiv').value, 10);
+  const stick = document.getElementById('customStick').value;
+  customPattern.sub = sub;
+  // Resize while preserving accents/flams/drags where indices align
+  const old = customPattern.notes;
+  const next = [];
+  for (let i = 0; i < len; i++) {
+    let h = old[i] && old[i].h ? old[i].h : 'R';
+    switch (stick) {
+      case 'alt': h = i % 2 === 0 ? 'R' : 'L'; break;
+      case 'altL': h = i % 2 === 0 ? 'L' : 'R'; break;
+      case 'dbl': h = (Math.floor(i / 2) % 2 === 0) ? 'R' : 'L'; break;
+      case 'para': {
+        const pat = ['R','L','R','R','L','R','L','L'];
+        h = pat[i % 8]; break;
+      }
+      case 'rights': h = 'R'; break;
+      case 'lefts': h = 'L'; break;
+      case 'keep': /* keep existing */ break;
+    }
+    const note = { h };
+    if (old[i] && old[i].a) note.a = true;
+    if (old[i] && old[i].f) note.f = true;
+    if (old[i] && old[i].g) note.g = old[i].g;
+    next.push(note);
+  }
+  customPattern.notes = next;
+  customSelectedIdx = -1;
+  customRender();
+}
+
+function customClearAccents() {
+  customPattern.notes.forEach(n => { delete n.a; });
+  customRender();
+}
+
+function customAccentEvery(n) {
+  customPattern.notes.forEach((note, i) => {
+    if (i % n === 0) note.a = true;
+    else delete note.a;
+  });
+  customRender();
+}
+
+function customSetNote(prop) {
+  if (customSelectedIdx < 0) { showToast('Tap a cell first'); return; }
+  const n = customPattern.notes[customSelectedIdx];
+  if (prop === 'h') n.h = (n.h === 'R') ? 'L' : 'R';
+  else if (prop === 'f') n.f = !n.f;
+  else if (prop === 'g') n.g = n.g === 'drag' ? null : 'drag';
+  if (!n.f) delete n.f;
+  if (!n.g) delete n.g;
+  customRender();
+}
+
+function customLoadToPractice() {
+  const rud = {
+    id: 'custom_temp',
+    name: customPattern.name,
+    cat: 'Custom',
+    level: 'int',
+    sub: customPattern.sub,
+    notes: JSON.parse(JSON.stringify(customPattern.notes)),
+    desc: customPattern.desc
+  };
+  loadPattern(rud);
+  switchScreen('practice');
+  showToast('Loaded to practice');
+}
+
+function customSave() {
+  const name = prompt('Name this preset:', customPattern.name || 'My pattern');
+  if (!name) return;
+  const sanitized = String(name).slice(0, 60);
+  const presets = safeRead(CUSTOM_KEY, []);
+  presets.push({
+    id: 'preset_' + Date.now(),
+    name: sanitized,
+    sub: customPattern.sub,
+    notes: JSON.parse(JSON.stringify(customPattern.notes)),
+    desc: 'Saved custom pattern.',
+    createdAt: new Date().toISOString()
+  });
+  safeWrite(CUSTOM_KEY, presets);
+  customRenderSaved();
+  showToast('Preset saved');
+}
+
+function customRenderSaved() {
+  const wrap = document.getElementById('customSavedList');
+  const presets = safeRead(CUSTOM_KEY, []);
+  if (!presets.length) {
+    wrap.innerHTML = '<div class="muted" style="text-align:center; padding:16px;">No saved presets yet.</div>';
+    return;
+  }
+  wrap.innerHTML = '';
+  presets.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+        <div>
+          <div style="font-weight:600;">${escapeHtml(p.name)}</div>
+          <div class="faint">${p.notes.length} notes · ${p.sub === 4 ? '1/16' : p.sub === 6 ? '1/16T' : p.sub === 3 ? '1/8T' : 'sub ' + p.sub}</div>
+        </div>
+        <div class="row">
+          <button onclick="customLoadPreset(${i})">Load</button>
+          <button onclick="customDeletePreset(${i})" class="ghost" style="color:var(--danger);">×</button>
+        </div>
+      </div>`;
+    wrap.appendChild(card);
+  });
+}
+
+function customLoadPreset(i) {
+  const presets = safeRead(CUSTOM_KEY, []);
+  if (!presets[i]) return;
+  const p = presets[i];
+  const rud = {
+    id: p.id, name: p.name, cat: 'Custom', level: 'int',
+    sub: p.sub, notes: JSON.parse(JSON.stringify(p.notes)),
+    desc: p.desc || 'Saved custom pattern.'
+  };
+  loadPattern(rud);
+  switchScreen('practice');
+  showToast(`Loaded ${p.name}`);
+}
+
+function customDeletePreset(i) {
+  const presets = safeRead(CUSTOM_KEY, []);
+  if (!presets[i]) return;
+  if (!confirm(`Delete "${presets[i].name}"?`)) return;
+  presets.splice(i, 1);
+  safeWrite(CUSTOM_KEY, presets);
+  customRenderSaved();
+}
+
+// ============================================================
+// NAV
+// ============================================================
+function switchScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById('screen-' + name);
+  if (target) target.classList.add('active');
+  document.querySelectorAll('.tab-bar button').forEach(b => {
+    b.classList.toggle('active', b.dataset.screen === name);
+  });
+  if (name === 'routine') renderRoutine();
+  if (name === 'rudiments') buildRudimentList(document.getElementById('rudSearch').value);
+  if (name === 'custom') { customRender(); customRenderSaved(); }
+  if (name === 'challenge') renderChallengeBest();
+}
+
+document.querySelectorAll('.tab-bar button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const dest = btn.dataset.screen;
+    // Stop playback when navigating away from playback-bearing screens
+    const playbackScreens = ['practice', 'session', 'challenge'];
+    if (isPlaying && !playbackScreens.includes(dest)) stopPlay();
+    if (challenge && challenge.running && dest !== 'challenge' && dest !== 'practice') stopChallenge(false);
+    // Pause the session timer if user navigates away from session screen
+    if (session && session.running && dest !== 'session') {
+      session.running = false;
+      if (session.timer) { clearInterval(session.timer); session.timer = null; }
+      stopPlay();
+      const sBtn = document.getElementById('sessionPlayBtn');
+      if (sBtn) {
+        sBtn.textContent = 'Resume';
+        sBtn.classList.remove('danger');
+        sBtn.classList.add('primary');
+      }
+    }
+    switchScreen(dest);
+  });
+});
+
+// ============================================================
+// MISC
+// ============================================================
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+document.getElementById('tempoSlider').addEventListener('input', e => {
+  currentBPM = parseInt(e.target.value, 10);
+  updateTempoDisplay();
+});
+document.getElementById('subdivSelect').addEventListener('change', e => {
+  currentSubdiv = parseInt(e.target.value, 10);
+  if (currentPattern) {
+    currentPattern = { ...currentPattern, sub: currentSubdiv };
+    renderBeatTrack();
+  }
+  updateTempoDisplay();
+});
+document.getElementById('loopCount').addEventListener('change', e => {
+  loopLimit = parseInt(e.target.value, 10);
+});
+document.getElementById('volSlider').addEventListener('input', e => {
+  if (masterGain) masterGain.gain.value = (parseInt(e.target.value, 10) / 100) * 0.6;
+});
+document.getElementById('markersToggle').addEventListener('change', () => renderBeatTrack());
+document.getElementById('rudSearch').addEventListener('input', e => buildRudimentList(e.target.value));
+
+document.getElementById('chPattern').addEventListener('change', renderChallengeBest);
+
+// Wake lock
+// Wake lock — keep screen on during playback, release when stopped
+let wakeLock = null;
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator && (isPlaying || (challenge && challenge.running))) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    }
+  } catch {}
+}
+async function releaseWakeLock() {
+  // Only release if no other playback context still needs the lock
+  if (isPlaying || (challenge && challenge.running) || (session && session.running)) return;
+  try {
+    if (wakeLock) {
+      await wakeLock.release();
+      wakeLock = null;
+    }
+  } catch {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && (isPlaying || (session && session.running) || (challenge && challenge.running))) {
+    requestWakeLock();
+  }
+});
+
+// ============================================================
+// INIT
+// ============================================================
+buildPatternSelect();
+buildRudimentList();
+loadPattern(RUDIMENTS.find(r => r.id === 'pd'));
+currentBPM = 110;
+loopLimit = parseInt(document.getElementById('loopCount').value, 10);
+updateTempoDisplay();
+customInit();
+
+// Prevent iOS double-tap zoom on the controls
+let lastTouch = 0;
+document.addEventListener('touchend', e => {
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+  const now = Date.now();
+  if (now - lastTouch < 300) e.preventDefault();
+  lastTouch = now;
+}, { passive: false });
+
+// Initial audio unlock
+const unlock = () => { ensureAudio(); };
+document.body.addEventListener('touchstart', unlock, { once: true, passive: true });
+document.body.addEventListener('click', unlock, { once: true });
+</script>
+</body>
+</html>
